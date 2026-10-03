@@ -1,0 +1,65 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String        @id @default(uuid())
+  email        String        @unique
+  passwordHash String
+  role         String        @default("owner")
+  createdAt    DateTime      @default(now())
+  doctors      Doctor[]
+  patients     Patient[]
+  appointments Appointment[]
+}
+
+model Doctor {
+  id           String        @id @default(uuid())
+  ownerId      String
+  owner        User          @relation(fields: [ownerId], references: [id])
+  name         String
+  specialty    String
+  email        String?
+  phone        String?
+  appointments Appointment[]
+
+  @@index([ownerId, name])
+}
+
+model Patient {
+  id           String        @id @default(uuid())
+  ownerId      String
+  owner        User          @relation(fields: [ownerId], references: [id])
+  name         String
+  email        String?
+  phone        String?
+  dob          DateTime?
+  notes        String?
+  appointments Appointment[]
+
+  @@index([ownerId, name])
+}
+
+model Appointment {
+  id        String   @id @default(uuid())
+  ownerId   String
+  owner     User     @relation(fields: [ownerId], references: [id])
+  patientId String
+  patient   Patient  @relation(fields: [patientId], references: [id], onDelete: Restrict)
+  doctorId  String
+  doctor    Doctor   @relation(fields: [doctorId], references: [id], onDelete: Restrict)
+  date      DateTime
+  time      String
+  duration  Int
+  status    String
+  reason    String?
+  createdAt DateTime @default(now())
+
+  @@index([ownerId, date, time])
+  @@index([doctorId, date])
+}

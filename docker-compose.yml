@@ -1,0 +1,31 @@
+services:
+  app:
+    build: .
+    ports: ["3000:3000"]
+    environment:
+      PORT: 3000
+      JWT_SECRET: ${JWT_SECRET:-local-compose-secret-change-me}
+      DATA_DIR: /app/data
+      REDIS_URL: redis://redis:6379
+      MONGODB_URI: mongodb://mongo:27017
+      DATABASE_URL: postgresql://caredesk:caredesk@postgres:5432/caredesk
+      AI_PROVIDER: mock
+      PAYMENT_MODE: sandbox
+    volumes: ["caredesk_data:/app/data"]
+    depends_on: [redis, mongo, postgres]
+  redis:
+    image: redis:7-alpine
+  mongo:
+    image: mongo:8
+    volumes: ["mongo_data:/data/db"]
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: caredesk
+      POSTGRES_PASSWORD: caredesk
+      POSTGRES_DB: caredesk
+    volumes: ["postgres_data:/var/lib/postgresql/data"]
+volumes:
+  caredesk_data:
+  mongo_data:
+  postgres_data:
