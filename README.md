@@ -63,10 +63,11 @@ All record endpoints require `Authorization: Bearer <token>`. Each account can a
 | Deployment | Vite production build, static serving, health endpoint, environment template, persistent Docker volume. |
 | Client-side routing | `src/routes.jsx` declares every React Router path; `src/main.jsx` links to those routes. |
 | Event loop, callbacks, Promises, closures, hoisting | `src/concepts/javascriptConcepts.js` contains executable examples covered by `test/concepts.test.js`. |
-| Embedding vs references | `src/integrations/mongoAppointmentSchema.js` declares referenced `ObjectId` fields and embedded snapshot documents; `mongoRepository.js` validates and writes that model. |
+| Embedding vs references | `src/models/mongoAppointment.model.js` uses Mongoose `ObjectId` fields with `ref: 'Doctor'` / `ref: 'Patient'` and embedded snapshot subdocuments. The native driver validator remains in `mongoAppointmentSchema.js`. |
 | Function calling/tool use | `src/services/toolRegistry.js` publishes a JSON function schema and safely dispatches registered tools. |
 | SQL JOINs | `src/repositories/appointmentReport.js` joins appointments, doctors, and patients; `/api/reports/appointments` executes it. |
 | Git workflow | `.github/workflows/ci.yml` validates tests and builds on pushes and pull requests; `CONTRIBUTING.md` documents the branch workflow. |
+| JavaScript hoisting | `src/frontendConcepts/hoisting.js` calls a function declaration before its source position, and React displays the resulting application name. |
 
 ### Git workflow evidence
 

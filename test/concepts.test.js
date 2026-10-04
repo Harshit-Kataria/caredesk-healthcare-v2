@@ -11,6 +11,7 @@ const{APPOINTMENT_REPORT_SQL}=require('../src/repositories/appointmentReport');
 const{buildAppointmentDocument}=require('../src/integrations/mongoRepository');
 const{appointmentCollectionSchema}=require('../src/integrations/mongoAppointmentSchema');
 const{toolDefinitions,executeToolCall}=require('../src/services/toolRegistry');
+const{appointmentSchema}=require('../src/models/mongoAppointment.model');
 
 test('closure keeps private state between calls',()=>{
   const first=createRequestTracker();
@@ -53,6 +54,10 @@ test('Mongo appointment embeds snapshots and references source records',()=>{
   assert.equal(fields.patientId.bsonType,'objectId');
   assert.equal(fields.doctorSnapshot.bsonType,'object');
   assert.equal(fields.patientSnapshot.bsonType,'object');
+  assert.equal(appointmentSchema.path('doctor').options.ref,'Doctor');
+  assert.equal(appointmentSchema.path('patient').options.ref,'Patient');
+  assert.equal(appointmentSchema.path('doctorSnapshot').schema.options._id,false);
+  assert.equal(appointmentSchema.path('patientSnapshot').schema.options._id,false);
 });
 
 test('AI function calling publishes a schema and invokes its registered tool',async()=>{
