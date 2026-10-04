@@ -1,3 +1,22 @@
+// JAVASCRIPT HOISTING: `buildHoistedBrandName` is called before its function
+// declaration. Function declarations are hoisted to the top of their scope.
+const HOISTED_BRAND_NAME = buildHoistedBrandName('CareDesk');
+
+// `var` declarations are also hoisted, but their assignment is not. Therefore
+// `roleBeforeAssignment` receives undefined before `workspaceRole` is assigned.
+function demonstrateFrontendHoisting() {
+  const roleBeforeAssignment = workspaceRole;
+  var workspaceRole = 'practice administrator';
+  return { roleBeforeAssignment, workspaceRole };
+}
+
+const HOISTED_WORKSPACE = demonstrateFrontendHoisting();
+
+// This declaration intentionally appears after its first invocation above.
+function buildHoistedBrandName(productName) {
+  return `${productName} Healthcare`;
+}
+
 const TOKEN_KEY = 'caredesk-session';
 const $ = (selector, root = document) => root.querySelector(selector);
 const uid = () => globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random()}`;
@@ -10,7 +29,7 @@ const initials = name => name.split(/\s+/).map(part => part[0]).slice(0,2).join(
 let db={doctors:[],patients:[],appointments:[]}, view='dashboard', query='', statusFilter='all', toastTimer;
 async function request(route,options={}){const token=sessionStorage.getItem(TOKEN_KEY);const response=await fetch(`/api/${route}`,{...options,headers:{'Content-Type':'application/json',...(token?{Authorization:`Bearer ${token}`}:{})}});const result=await response.json();if(response.status===401&&!['login','signup'].includes(route)){sessionStorage.removeItem(TOKEN_KEY);showLogin();throw new Error('Session expired. Please sign in again.')}if(!response.ok)throw new Error(result.error||'Request failed.');return result}
 async function refresh(){const [doctors,patients,appointments]=await Promise.all(['doctors','patients','appointments'].map(route=>request(route)));db={doctors,patients,appointments};render()}
-function showLogin(){document.body.classList.add('login-mode');$('#app').innerHTML=`<div class="login-card"><div class="login-logo">✚</div><p class="eyebrow">Practice workspace</p><h1>Sign in to CareDesk</h1><p>Manage appointments and patient records in one place.</p><form id="login-form"><div class="field"><label for="login-email">Email</label><input id="login-email" name="email" type="email" required autocomplete="username"></div><div class="field"><label for="login-password">Password</label><input id="login-password" name="password" type="password" required autocomplete="current-password" placeholder="Enter your password"></div><p class="form-error" id="login-error"></p><button class="primary-btn" type="submit">Sign in</button></form><div class="auth-switch">New here? <button type="button" data-action="show-signup">Create an account</button></div><small>Demo account: admin@caredesk.local / Admin@123</small></div>`;$('#login-email').focus()}
+function showLogin(){document.body.classList.add('login-mode');$('#app').innerHTML=`<div class="login-card" data-workspace-role="${HOISTED_WORKSPACE.workspaceRole}"><div class="login-logo">✚</div><p class="eyebrow">Practice workspace</p><h1>Sign in to ${HOISTED_BRAND_NAME}</h1><p>Manage appointments and patient records in one place.</p><form id="login-form"><div class="field"><label for="login-email">Email</label><input id="login-email" name="email" type="email" required autocomplete="username"></div><div class="field"><label for="login-password">Password</label><input id="login-password" name="password" type="password" required autocomplete="current-password" placeholder="Enter your password"></div><p class="form-error" id="login-error"></p><button class="primary-btn" type="submit">Sign in</button></form><div class="auth-switch">New here? <button type="button" data-action="show-signup">Create an account</button></div><small>Demo account: admin@caredesk.local / Admin@123</small></div>`;$('#login-email').focus()}
 function showSignup(){document.body.classList.add('login-mode');$('#app').innerHTML=`<div class="login-card"><div class="login-logo">✚</div><p class="eyebrow">New practice workspace</p><h1>Create your account</h1><p>Your patients, doctors, and appointments will be private to your account.</p><form id="signup-form"><div class="field"><label for="signup-email">Email</label><input id="signup-email" name="email" type="email" required autocomplete="email"></div><div class="field"><label for="signup-password">Password</label><input id="signup-password" name="password" type="password" required minlength="8" autocomplete="new-password" placeholder="At least 8 characters"></div><div class="field"><label for="signup-confirm">Confirm password</label><input id="signup-confirm" name="confirmPassword" type="password" required minlength="8" autocomplete="new-password"></div><p class="form-error" id="signup-error"></p><button class="primary-btn" type="submit">Create account</button></form><div class="auth-switch">Already have an account? <button type="button" data-action="show-login">Sign in</button></div></div>`;$('#signup-email').focus()}
 const patient = id => db.patients.find(item=>item.id===id);
 const doctor = id => db.doctors.find(item=>item.id===id);
