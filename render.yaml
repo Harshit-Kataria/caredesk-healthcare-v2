@@ -3,7 +3,7 @@ services:
     name: caredesk-healthcare
     runtime: node
     plan: free
-    buildCommand: npm ci --include=dev && npm run buildgit add render.yaml
+    buildCommand: npm ci --include=dev && npm run build
     startCommand: npm start
     healthCheckPath: /health
     envVars:
