@@ -67,7 +67,7 @@ All record endpoints require `Authorization: Bearer <token>`. Each account can a
 | Function calling/tool use | `src/services/toolRegistry.js` publishes a JSON function schema and safely dispatches registered tools. |
 | SQL JOINs | `src/repositories/appointmentReport.js` joins appointments, doctors, and patients; `/api/reports/appointments` executes it. |
 | Git workflow | `.github/workflows/ci.yml` validates tests and builds on pushes and pull requests; `CONTRIBUTING.md` documents the branch workflow. |
-| JavaScript hoisting | `src/frontendConcepts/hoisting.js` demonstrates both function declaration hoisting and `var` declaration hoisting; React displays its result. |
+| JavaScript hoisting | `src/main.jsx` directly calls `createNavigationLabel` before its declaration and reads `workspaceRole` before its `var` assignment. `src/frontendConcepts/hoisting.js` provides a second reusable example. |
 
 ### Git workflow evidence
 
