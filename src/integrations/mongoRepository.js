@@ -1,4 +1,5 @@
 const{MongoClient,ObjectId}=require('mongodb');
+const{appointmentCollectionSchema}=require('./mongoAppointmentSchema');
 
 // MongoDB relationship design:
 // - patientId and doctorId are references because those records change independently.
@@ -15,7 +16,12 @@ function buildAppointmentDocument(ownerId,item,patient,doctor){
  };
 }
 async function createMongoRepository(uri=process.env.MONGODB_URI,database=process.env.MONGODB_DATABASE||'caredesk'){
- const client=new MongoClient(uri);await client.connect();const db=client.db(database),doctors=db.collection('doctors'),patients=db.collection('patients'),appointments=db.collection('appointments');
+ const client=new MongoClient(uri);await client.connect();const db=client.db(database);
+ const existingCollections=await db.listCollections({name:'appointments'}).toArray();
+ if(existingCollections.length===0){
+  await db.createCollection('appointments',{validator:appointmentCollectionSchema});
+ }
+ const doctors=db.collection('doctors'),patients=db.collection('patients'),appointments=db.collection('appointments');
  await Promise.all([doctors.createIndex({ownerId:1,name:1}),patients.createIndex({ownerId:1,name:1}),appointments.createIndex({ownerId:1,doctorId:1,date:1,time:1})]);
  return{
   backend:'mongodb',close:()=>client.close(),

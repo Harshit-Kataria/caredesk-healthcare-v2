@@ -2,12 +2,14 @@ const test=require('node:test');
 const assert=require('node:assert/strict');
 const{
   formatConceptLabel,
+  hoistingExample,
   createRequestTracker,
   callbackToPromise,
   demonstrateEventLoop
 }=require('../src/concepts/javascriptConcepts');
 const{APPOINTMENT_REPORT_SQL}=require('../src/repositories/appointmentReport');
 const{buildAppointmentDocument}=require('../src/integrations/mongoRepository');
+const{appointmentCollectionSchema}=require('../src/integrations/mongoAppointmentSchema');
 const{toolDefinitions,executeToolCall}=require('../src/services/toolRegistry');
 
 test('closure keeps private state between calls',()=>{
@@ -32,6 +34,7 @@ test('event loop runs microtasks before timer macrotasks',async()=>{
 });
 
 test('hoisted declaration formats concept labels',()=>{
+  assert.equal(hoistingExample,'doctor appointment system');
   assert.equal(formatConceptLabel('sql_joins'),'sql joins');
 });
 
@@ -45,6 +48,11 @@ test('Mongo appointment embeds snapshots and references source records',()=>{
   assert.equal(document.patientId,'patient-1');
   assert.equal(document.patientSnapshot.name,'Asha');
   assert.equal(document.doctorSnapshot.specialty,'Cardiology');
+  const fields=appointmentCollectionSchema.$jsonSchema.properties;
+  assert.equal(fields.doctorId.bsonType,'objectId');
+  assert.equal(fields.patientId.bsonType,'objectId');
+  assert.equal(fields.doctorSnapshot.bsonType,'object');
+  assert.equal(fields.patientSnapshot.bsonType,'object');
 });
 
 test('AI function calling publishes a schema and invokes its registered tool',async()=>{

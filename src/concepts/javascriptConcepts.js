@@ -3,7 +3,10 @@
  * They are kept in one module so the capstone concepts are easy to review.
  */
 
-// HOISTING: function declarations can be called before their declaration.
+// HOISTING: this call appears before the function declaration below. JavaScript
+// moves the declaration into scope during creation of the execution context.
+const hoistingExample = formatConceptLabel('doctor_appointment_system');
+
 function formatConceptLabel(value) {
   return String(value).trim().replaceAll('_', ' ');
 }
@@ -48,6 +51,7 @@ async function demonstrateEventLoop() {
 
 module.exports = {
   formatConceptLabel,
+  hoistingExample,
   createRequestTracker,
   loadWithCallback,
   callbackToPromise,
