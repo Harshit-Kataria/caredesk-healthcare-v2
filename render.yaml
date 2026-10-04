@@ -2,7 +2,7 @@ services:
   - type: web
     name: caredesk-healthcare
     runtime: node
-    plan: starter
+    plan: free
     buildCommand: npm ci && npm run build
     startCommand: npm start
     healthCheckPath: /health
@@ -12,7 +12,7 @@ services:
       - key: NODE_ENV
         value: production
       - key: DATA_DIR
-        value: /var/data
+        value: /tmp/caredesk-data
       - key: AI_PROVIDER
         value: mock
       - key: PAYMENT_MODE
@@ -25,7 +25,4 @@ services:
         sync: false
       - key: ADMIN_PASSWORD
         sync: false
-    disk:
-      name: caredesk-data
-      mountPath: /var/data
-      sizeGB: 1
+    
