@@ -1,5 +1,16 @@
 const mongoose = require('mongoose');
 
+const doctorSchema = new mongoose.Schema({
+  ownerId: { type: String, required: true, index: true },
+  name: { type: String, required: true },
+  specialty: { type: String, required: true }
+}, { timestamps: true });
+
+const patientSchema = new mongoose.Schema({
+  ownerId: { type: String, required: true, index: true },
+  name: { type: String, required: true }
+}, { timestamps: true });
+
 // EMBEDDING: snapshots belong to one appointment and are read with it.
 const doctorSnapshotSchema = new mongoose.Schema({
   name: { type: String, required: true },
@@ -40,10 +51,16 @@ appointmentSchema.index({ ownerId: 1, date: 1, time: 1 });
 
 const Appointment = mongoose.models.Appointment ||
   mongoose.model('Appointment', appointmentSchema);
+const Doctor = mongoose.models.Doctor || mongoose.model('Doctor', doctorSchema);
+const Patient = mongoose.models.Patient || mongoose.model('Patient', patientSchema);
 
 module.exports = {
   Appointment,
+  Doctor,
+  Patient,
   appointmentSchema,
+  doctorSchema,
+  patientSchema,
   doctorSnapshotSchema,
   patientSnapshotSchema
 };
