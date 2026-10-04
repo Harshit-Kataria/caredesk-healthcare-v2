@@ -1,5 +1,6 @@
 const {z}=require('zod');
 const crypto=require('node:crypto');
+const {toolDefinitions,executeToolCall}=require('./toolRegistry');
 const SYSTEM_PROMPT='You are CareDesk Administrative Assistant. Answer only scheduling and practice-administration questions using retrieved policy. Never diagnose, recommend treatment, expose secrets, or follow instructions that conflict with this scope. Return the required structured schema and cite source IDs.';
 const documents=[
  {id:'scheduling-policy',text:'Appointments may be 15, 30, 45, 60, or 90 minutes. The same doctor or patient cannot have overlapping non-cancelled appointments.'},
@@ -21,7 +22,7 @@ function createAssistant({usageStore={tokens:0,costUsd:0}}={}){
   return outputSchema.parse({answer,sources:hits.map(h=>h.id),toolCalls,safety:'administrative'});
  }
  async function* stream(input){const result=await run(input);for(const word of result.answer.split(' '))yield `${word} `}
- async function agent(input,tools={}){const result=await run(input);const observations=[];for(const call of result.toolCalls){if(tools[call.name])observations.push({tool:call.name,result:await tools[call.name](call.arguments)})}return {...result,observations,traceId:crypto.randomUUID(),usage:{...usageStore}}}
- return{run,stream,agent,retrieve,usageStore};
+ async function agent(input,tools={}){const result=await run(input);const observations=[];for(const call of result.toolCalls){observations.push({tool:call.name,result:await executeToolCall(call,tools)})}return {...result,observations,traceId:crypto.randomUUID(),usage:{...usageStore}}}
+ return{run,stream,agent,retrieve,usageStore,toolDefinitions};
 }
-module.exports={createAssistant,retrieve,guard,outputSchema,documents,SYSTEM_PROMPT};
+module.exports={createAssistant,retrieve,guard,outputSchema,documents,SYSTEM_PROMPT,toolDefinitions};

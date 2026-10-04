@@ -6,10 +6,10 @@ const path = require('node:path');
 
 const directory = fs.mkdtempSync(path.join(os.tmpdir(),'caredesk-test-'));
 process.env.DATA_DIR = directory;
-const { server, db } = require('../server');
+const { server, db, maintenanceJob } = require('../server');
 let base, token;
 test.before(async () => {await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));base=`http://127.0.0.1:${server.address().port}`});
-test.after(async () => {await new Promise(resolve=>server.close(resolve));db.close();fs.rmSync(directory,{recursive:true,force:true})});
+test.after(async () => {await new Promise(resolve=>server.close(resolve));maintenanceJob.stop();db.close();fs.rmSync(directory,{recursive:true,force:true})});
 async function api(route,method='GET',body,authenticated=true,customToken){const response=await fetch(`${base}/api/${route}`,{method,headers:{'Content-Type':'application/json',...(authenticated?{Authorization:`Bearer ${customToken||token}`}:{})},body:body?JSON.stringify(body):undefined});return {status:response.status,data:await response.json()}}
 
 test('authentication protects records',async()=>{
@@ -25,6 +25,10 @@ test('CRUD, conflict checks, and linked-record protection',async()=>{
   assert.ok(doctor.id&&patient.id);
   const first={doctorId:doctor.id,patientId:patient.id,date:'2026-12-15',time:'10:00',duration:30,status:'scheduled',reason:'Checkup'};
   const booked=await api('appointments','POST',first);assert.equal(booked.status,201);
+  const report=await api('reports/appointments');
+  assert.equal(report.status,200);
+  assert.equal(report.data[0].doctorName,'Dr. Test');
+  assert.equal(report.data[0].patientName,'Test Patient');
   assert.equal((await api('appointments','POST',{...first,time:'10:15'})).status,400);
   assert.equal((await api(`patients/${patient.id}`,'DELETE')).status,409);
   assert.equal((await api(`appointments/${booked.data.id}`,'PUT',{...first,status:'completed'})).status,200);

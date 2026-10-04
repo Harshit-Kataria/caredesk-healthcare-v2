@@ -13,6 +13,8 @@ const{DatabaseSync}=require('node:sqlite');
 const{createCache}=require('./src/services/cache');
 const{createAssistant}=require('./src/services/ai');
 const{createPaymentService}=require('./src/services/payment');
+const{listAppointmentReport}=require('./src/repositories/appointmentReport');
+const{createRequestTracker}=require('./src/concepts/javascriptConcepts');
 
 const root=__dirname,dataDir=process.env.DATA_DIR||path.join(root,'data');fs.mkdirSync(dataDir,{recursive:true});
 const db=new DatabaseSync(path.join(dataDir,'caredesk.sqlite'));db.exec(`PRAGMA foreign_keys=ON;
@@ -40,8 +42,9 @@ function validate(type,input,ownerId,recordId){
  return item;
 }
 const memoryCacheData=new Map();
-const app=express(),server=http.createServer(app),wss=new WebSocketServer({server,path:'/ws'}),clients=new Map(),usage={tokens:0,costUsd:0},assistant=createAssistant({usageStore:usage}),payments=createPaymentService();let cache={kind:'memory',async get(k){return memoryCacheData.get(k)||null},async set(k,v){memoryCacheData.set(k,v)},async delPrefix(prefix){for(const key of memoryCacheData.keys())if(key.startsWith(prefix))memoryCacheData.delete(key)}};
+const app=express(),server=http.createServer(app),wss=new WebSocketServer({server,path:'/ws'}),clients=new Map(),usage={tokens:0,costUsd:0},assistant=createAssistant({usageStore:usage}),payments=createPaymentService(),trackRequest=createRequestTracker();let cache={kind:'memory',async get(k){return memoryCacheData.get(k)||null},async set(k,v){memoryCacheData.set(k,v)},async delPrefix(prefix){for(const key of memoryCacheData.keys())if(key.startsWith(prefix))memoryCacheData.delete(key)}};
 app.disable('x-powered-by');app.use(express.json({limit:'100kb'}));app.use((req,res,next)=>{res.set({'X-Content-Type-Options':'nosniff','Referrer-Policy':'no-referrer','Cache-Control':'no-store'});next()});
+app.use((req,res,next)=>{req.requestNumber=trackRequest();next()});
 const authLimiter=rateLimit({windowMs:60_000,limit:10,standardHeaders:'draft-8',legacyHeaders:false});
 function issue(user){return jwt.sign({sub:user.id,email:user.email,role:user.role},secret,{expiresIn:'7d',jwtid:id(),issuer:'caredesk'})}
 function auth(req,res,next){try{const token=req.headers.authorization?.match(/^Bearer (.+)$/)?.[1];if(!token)throw Error();const payload=jwt.verify(token,secret,{issuer:'caredesk'});if(db.prepare('SELECT token_hash FROM sessions WHERE token_hash=? AND expires_at>?').get(crypto.createHash('sha256').update(token).digest('hex'),Date.now())){req.user={id:payload.sub,email:payload.email,role:payload.role};req.token=token;return next()}throw Error()}catch{return res.status(401).json({error:'Please sign in.'})}}
@@ -51,6 +54,7 @@ async function signup(req,res){const parsed=authSchema.safeParse(req.body);if(!p
 async function login(req,res){const parsed=authSchema.safeParse(req.body);if(!parsed.success)return res.status(401).json({error:'Incorrect email or password.'});const user=db.prepare('SELECT * FROM users WHERE email=?').get(parsed.data.email);if(!user||!await verifyPassword(parsed.data.password,user.password_hash))return res.status(401).json({error:'Incorrect email or password.'});const token=issue(user);storeSession(token,user.id);res.json({token,user:{id:user.id,email:user.email,role:user.role}})}
 app.post(['/api/auth/signup','/api/signup'],authLimiter,signup);app.post(['/api/auth/login','/api/login'],authLimiter,login);app.get(['/api/auth/me','/api/me'],auth,(req,res)=>res.json({user:req.user}));app.post(['/api/auth/logout','/api/logout'],auth,(req,res)=>{db.prepare('DELETE FROM sessions WHERE token_hash=?').run(crypto.createHash('sha256').update(req.token).digest('hex'));res.json({ok:true})});
 app.get('/api/dashboard',auth,async(req,res)=>{const key=`dashboard:${req.user.id}`,hit=await cache.get(key);if(hit)return res.json(hit);const today=new Date().toISOString().slice(0,10),result={today_appointments:db.prepare("SELECT COUNT(*) n FROM appointments WHERE ownerId=? AND date=? AND status<>'cancelled'").get(req.user.id,today).n,total_appointments:db.prepare('SELECT COUNT(*) n FROM appointments WHERE ownerId=?').get(req.user.id).n,total_patients:db.prepare('SELECT COUNT(*) n FROM patients WHERE ownerId=?').get(req.user.id).n,active_doctors:db.prepare('SELECT COUNT(*) n FROM doctors WHERE ownerId=?').get(req.user.id).n};await cache.set(key,result,30);res.json(result)});
+app.get('/api/reports/appointments',auth,(req,res)=>res.json(listAppointmentReport(db,req.user.id)));
 for(const type of Object.keys(tables)){
  app.get(`/api/${type}`,auth,(req,res)=>res.json(db.prepare(`SELECT * FROM ${type} WHERE ownerId=?`).all(req.user.id)));
  app.post(`/api/${type}`,auth,async(req,res)=>{const value=validate(type,req.body,req.user.id);if(typeof value==='string')return res.status(400).json({error:value});const recordId=id(),fields=tables[type];db.prepare(`INSERT INTO ${type}(id,${fields.join(',')},ownerId) VALUES(${Array(fields.length+2).fill('?').join(',')})`).run(recordId,...fields.map(k=>value[k]),req.user.id);audit(req.user.id,'created',type,recordId);await cache.delPrefix(`dashboard:${req.user.id}`);broadcast(req.user.id,{event:'created',type,id:recordId});res.status(201).json({id:recordId,...value})});
@@ -68,7 +72,7 @@ const dist=path.join(root,'dist');if(fs.existsSync(dist)){app.use(express.static
 app.use((req,res)=>res.status(404).json({error:'Not found.'}));app.use((err,req,res,next)=>{console.error(err);res.status(500).json({error:'Server error.'})});
 function broadcast(ownerId,message){for(const[ws,user]of clients)if(user.id===ownerId&&ws.readyState===1)ws.send(JSON.stringify(message))}
 wss.on('connection',(ws,req)=>{try{const token=new URL(req.url,'http://local').searchParams.get('token'),payload=jwt.verify(token,secret,{issuer:'caredesk'});clients.set(ws,{id:payload.sub});ws.send(JSON.stringify({event:'connected'}));ws.on('close',()=>clients.delete(ws))}catch{ws.close(1008,'Unauthorized')}});
-cron.schedule('0 2 * * *',()=>{db.prepare('DELETE FROM sessions WHERE expires_at<=?').run(Date.now());console.log('Scheduled maintenance: expired sessions removed')});
+const maintenanceJob=cron.schedule('0 2 * * *',()=>{db.prepare('DELETE FROM sessions WHERE expires_at<=?').run(Date.now());console.log('Scheduled maintenance: expired sessions removed')});
 async function initialize(){cache=await createCache();return server}
 if(require.main===module)initialize().then(()=>server.listen(Number(process.env.PORT)||3000,()=>console.log(`CareDesk running at http://localhost:${process.env.PORT||3000}`))).catch(e=>{console.error(e);process.exit(1)});
-module.exports={app,server,db,initialize,assistant,payments};
+module.exports={app,server,db,initialize,assistant,payments,maintenanceJob};

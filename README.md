@@ -61,6 +61,12 @@ All record endpoints require `Authorization: Bearer <token>`. Each account can a
 | SSR | `/about` is rendered server-side with ReactDOM Server. |
 | Payments | Offline test intents plus an optional Stripe test-API adapter; live mode and live keys are rejected. |
 | Deployment | Vite production build, static serving, health endpoint, environment template, persistent Docker volume. |
+| Client-side routing | `src/routes.jsx` declares every React Router path; `src/main.jsx` links to those routes. |
+| Event loop, callbacks, Promises, closures, hoisting | `src/concepts/javascriptConcepts.js` contains executable examples covered by `test/concepts.test.js`. |
+| Embedding vs references | `src/integrations/mongoRepository.js` references doctor/patient IDs and embeds historical appointment snapshots. |
+| Function calling/tool use | `src/services/toolRegistry.js` publishes a JSON function schema and safely dispatches registered tools. |
+| SQL JOINs | `src/repositories/appointmentReport.js` joins appointments, doctors, and patients; `/api/reports/appointments` executes it. |
+| Git workflow | `.github/workflows/ci.yml` validates tests and builds on pushes and pull requests; `CONTRIBUTING.md` documents the branch workflow. |
 
 ## Architecture
 
