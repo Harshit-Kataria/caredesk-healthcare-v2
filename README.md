@@ -63,10 +63,16 @@ All record endpoints require `Authorization: Bearer <token>`. Each account can a
 | Deployment | Vite production build, static serving, health endpoint, environment template, persistent Docker volume. |
 | Client-side routing | `src/routes.jsx` declares every React Router path; `src/main.jsx` links to those routes. |
 | Event loop, callbacks, Promises, closures, hoisting | `src/concepts/javascriptConcepts.js` contains executable examples covered by `test/concepts.test.js`. |
-| Embedding vs references | `src/integrations/mongoRepository.js` references doctor/patient IDs and embeds historical appointment snapshots. |
+| Embedding vs references | `src/integrations/mongoAppointmentSchema.js` declares referenced `ObjectId` fields and embedded snapshot documents; `mongoRepository.js` validates and writes that model. |
 | Function calling/tool use | `src/services/toolRegistry.js` publishes a JSON function schema and safely dispatches registered tools. |
 | SQL JOINs | `src/repositories/appointmentReport.js` joins appointments, doctors, and patients; `/api/reports/appointments` executes it. |
 | Git workflow | `.github/workflows/ci.yml` validates tests and builds on pushes and pull requests; `CONTRIBUTING.md` documents the branch workflow. |
+
+### Git workflow evidence
+
+This project uses `main` as the protected integration branch. Work is developed
+on focused `codex/*` feature branches, validated by the CI workflow, and merged
+back with a merge commit so the branch history remains visible.
 
 ## Architecture
 
